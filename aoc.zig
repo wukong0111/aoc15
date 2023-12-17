@@ -15,8 +15,8 @@ pub fn main() !void {
     std.debug.print("day4.1 {}\n", .{day4res[0]});
     std.debug.print("day4.2 {}\n", .{day4res[1]});
     const day5res = try day5();
-    std.debug.print("day5.1{}\n", .{day5res[0]});
-    std.debug.print("day5.2{}\n", .{day5res[1]});
+    std.debug.print("day5.1 {}\n", .{day5res[0]});
+    std.debug.print("day5.2 {}\n", .{day5res[1]});
 }
 
 fn day1() ![2]i64 {
@@ -282,7 +282,7 @@ fn day5isNiceStringBis(line: []const u8) bool {
     return rep and twice;
 }
 
-test "day 5" {
+test "day5 test" {
     const res = try day5();
     try expect(res[0] == 255);
     try expect(res[1] == 55);
