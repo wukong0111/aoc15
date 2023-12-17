@@ -15,7 +15,8 @@ pub fn main() !void {
     std.debug.print("day4.1 {}\n", .{day4res[0]});
     std.debug.print("day4.2 {}\n", .{day4res[1]});
     const day5res = try day5();
-    std.debug.print("{}\n", .{day5res[0]});
+    std.debug.print("day5.1{}\n", .{day5res[0]});
+    std.debug.print("day5.2{}\n", .{day5res[1]});
 }
 
 fn day1() ![2]i64 {
@@ -122,7 +123,6 @@ fn day3() ![2]i64 {
             try san_rob_houses.put(robo_pos, {});
         }
 
-        // std.debug.print("santa: {}{}, robot: {}{}, san time {}\n", .{ robo_santa_pos[0], robo_santa_pos[1], robo_pos[0], robo_pos[1], (mov_counter % 2) });
         switch (ele) {
             '^' => {
                 santa_pos[1] += 1;
@@ -215,6 +215,7 @@ fn day5() ![2]i64 {
     defer alloc.free(contents);
     var tokenizer = std.mem.tokenizeAny(u8, contents, "\n");
     var nice_strings: u16 = 0;
+    var nice_strings_bis: u16 = 0;
     var not_nice: u16 = 0;
     while (tokenizer.next()) |line| {
         const is_nice = day5isNiceString(line);
@@ -224,10 +225,10 @@ fn day5() ![2]i64 {
             not_nice += 1;
         }
 
-        _ = day5isNiceStringBis(line);
+        if (day5isNiceStringBis(line)) nice_strings_bis += 1;
     }
 
-    return [2]i64{ nice_strings, not_nice };
+    return [2]i64{ nice_strings, nice_strings_bis };
 }
 
 fn day5isNiceString(line: []const u8) bool {
@@ -260,34 +261,29 @@ fn day5isNiceString(line: []const u8) bool {
 
 fn day5isNiceStringBis(line: []const u8) bool {
     const last_index = line.len - 1;
-    var next_index: u8 = 0;
     var twice = false;
-    var pal = false;
+    var rep = false;
     for (line, 0..) |char, i| {
-        if (pal and twice) continue;
-        const u8i = @as(u8, @intCast(i));
-        var j: u8 = u8i;
-        next_index = u8i + 1;
+        if (rep and twice) continue;
+        var j: usize = i + 1;
+        if (j > last_index) break;
+        const pair = [2]u8{ char, line[j] };
         while (j <= last_index) : (j += 1) {
-            if ((j + 2) > last_index) break; //avoid unbounds
-            if (j > i) {
-                if (char == line[j + 1] and line[next_index] == line[j + 2]) {
-                    twice = true;
-                }
+            if ((j + 1) > last_index) break; //avoid unbounds
+            const next_pair = [2]u8{ line[j], line[j + 1] };
+            if (std.mem.eql(u8, &pair, &next_pair) and j >= i + 2) {
+                twice = true;
             }
-            if (char == line[j + 2] and char != line[j + 1]) {
-                pal = true;
+            if (j == i + 1 and char == line[j + 1]) {
+                rep = true;
             }
-        }
-        if (pal and twice) {
-            std.debug.print("{c}{c}\n", .{ char, line[j] });
-            std.debug.print("nice: {s}\n", .{line});
         }
     }
-    return pal and twice;
+    return rep and twice;
 }
 
 test "day 5" {
     const res = try day5();
     try expect(res[0] == 255);
+    try expect(res[1] == 55);
 }
