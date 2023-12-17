@@ -1,0 +1,2 @@
+The std.mem.tokenize function has been marked as deprecated and it is recommended to use std.mem.tokenizeAny, std.mem.tokenizeSequence, or std.mem.tokenizeScalar instead, depending on the use case.
+
