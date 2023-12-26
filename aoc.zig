@@ -17,6 +17,13 @@ pub fn main() !void {
     const day5res = try day5();
     std.debug.print("day5.1 {}\n", .{day5res[0]});
     std.debug.print("day5.2 {}\n", .{day5res[1]});
+    const day6res = try day6();
+    std.debug.print("day6.1 {}\n", .{day6res[0]});
+    std.debug.print("day6.2 {}\n", .{day6res[1]});
+}
+
+fn calcIndex(row: usize, column: usize, columnCount: usize) usize {
+    return row * columnCount + column;
 }
 
 fn day1() ![2]i64 {
@@ -47,7 +54,7 @@ fn day1() ![2]i64 {
     return [2]i64{ floor, base_pos };
 }
 
-test "day1 test" {
+test "day1" {
     const res = try day1();
     try expect(res[0] == 138);
     try expect(res[1] == 1771);
@@ -88,7 +95,7 @@ fn day2() ![2]i64 {
     return [2]i64{ paper, ribbon };
 }
 
-test "day2 test" {
+test "day2" {
     const res = try day2();
     try expect(res[0] == 1588178);
     try expect(res[1] == 3783758);
@@ -164,7 +171,7 @@ fn day3() ![2]i64 {
     return [2]i64{ houses_size, san_rob_houses_size };
 }
 
-test "day3 test" {
+test "day3" {
     const res = try day3();
     try expect(res[0] == 2592);
     try expect(res[1] == 2360);
@@ -203,7 +210,7 @@ fn day4() ![2]u64 {
     return [2]u64{ res1, res2 };
 }
 
-test "day4 test" {
+test "day4" {
     const res = try day4();
     try expect(res[0] == 282749);
     try expect(res[1] == 9962624);
@@ -282,8 +289,155 @@ fn day5isNiceStringBis(line: []const u8) bool {
     return rep and twice;
 }
 
-test "day5 test" {
+test "day5" {
     const res = try day5();
     try expect(res[0] == 255);
     try expect(res[1] == 55);
+}
+
+fn day6() ![2]u64 {
+    const allocator = std.heap.page_allocator;
+    const contents = try std.fs.cwd()
+        .readFileAlloc(allocator, "day6.txt", std.math.maxInt(usize));
+    defer allocator.free(contents);
+    var tokenizer = std.mem.tokenizeAny(u8, contents, "\n");
+    const res = try day6Resolver(&tokenizer);
+    return [2]u64{ res[0], res[1] };
+}
+
+fn day6Resolver(iterator: *std.mem.TokenIterator(u8, .any)) ![2]u64 {
+    const row_count: usize = 1000;
+    const column_count: usize = 1000;
+    const buffer_size = row_count * column_count;
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer {
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) {
+            std.debug.print("Memory leak detected\n", .{});
+        }
+    }
+    var matrix = try allocator.alloc(u8, buffer_size);
+    defer allocator.free(matrix);
+    var inc_matrix = try allocator.alloc(u8, buffer_size);
+    defer allocator.free(inc_matrix);
+
+    const on = 1;
+    const off = 0;
+    @memset(matrix, off);
+    @memset(inc_matrix, 0);
+    while (iterator.next()) |line| {
+        const turn_on = "turn on";
+        const turn_off = "turn off";
+        const toggle = "toggle";
+        var data_index: u8 = 0;
+        var tokenizer = std.mem.tokenizeAny(u8, line, " ");
+        var on_from: [2]u64 = undefined;
+        var on_to: [2]u64 = undefined;
+        var off_from: [2]u64 = undefined;
+        var off_to: [2]u64 = undefined;
+        var toggle_from: [2]u64 = undefined;
+        var toggle_to: [2]u64 = undefined;
+        if (std.mem.indexOf(u8, line, turn_on)) |_| {
+            while (tokenizer.next()) |data| : (data_index += 1) {
+                if (data_index == 2) {
+                    on_from = try day6ExtractCoords(data);
+                }
+                if (data_index == 4) {
+                    on_to = try day6ExtractCoords(data);
+                }
+            }
+            var on_col_count = on_from[0];
+            while (on_col_count <= on_to[0]) : (on_col_count += 1) {
+                var on_row_count = on_from[1];
+                while (on_row_count <= on_to[1]) : (on_row_count += 1) {
+                    const index = calcIndex(on_row_count, on_col_count, column_count);
+                    matrix[index] = on;
+                    inc_matrix[index] += 1;
+                }
+            }
+        }
+        if (std.mem.indexOf(u8, line, turn_off)) |_| {
+            while (tokenizer.next()) |data| : (data_index += 1) {
+                if (data_index == 2) {
+                    off_from = try day6ExtractCoords(data);
+                }
+                if (data_index == 4) {
+                    off_to = try day6ExtractCoords(data);
+                }
+            }
+            var off_col_count = off_from[0];
+            while (off_col_count <= off_to[0]) : (off_col_count += 1) {
+                var off_row_count = off_from[1];
+                while (off_row_count <= off_to[1]) : (off_row_count += 1) {
+                    const index = calcIndex(off_row_count, off_col_count, column_count);
+                    matrix[index] = off;
+                    if (inc_matrix[index] > 0) inc_matrix[index] -= 1;
+                }
+            }
+        }
+        if (std.mem.indexOf(u8, line, toggle)) |_| {
+            while (tokenizer.next()) |data| : (data_index += 1) {
+                if (data_index == 1) {
+                    toggle_from = try day6ExtractCoords(data);
+                }
+                if (data_index == 3) {
+                    toggle_to = try day6ExtractCoords(data);
+                }
+            }
+            var tog_col_count = toggle_from[0];
+            while (tog_col_count <= toggle_to[0]) : (tog_col_count += 1) {
+                var tog_row_count = toggle_from[1];
+                while (tog_row_count <= toggle_to[1]) : (tog_row_count += 1) {
+                    const index = calcIndex(tog_row_count, tog_col_count, column_count);
+                    const actual = matrix[index];
+                    if (actual == on) {
+                        matrix[index] = off;
+                    }
+                    if (actual == off) {
+                        matrix[index] = on;
+                    }
+                    inc_matrix[index] += 2;
+                }
+            }
+        }
+    }
+    var res: u64 = 0;
+    for (matrix) |ele| {
+        if (ele == on) res += 1;
+    }
+    var res2: u64 = 0;
+    for (inc_matrix) |ele| {
+        res2 = res2 + ele;
+    }
+    return [2]u64{ res, res2 };
+}
+
+fn day6ExtractCoords(data: []const u8) ![2]u64 {
+    var data_tzer = std.mem.tokenizeAny(u8, data, ",");
+    var res_index: u8 = 0;
+    var res: [2]u64 = undefined;
+    while (data_tzer.next()) |coord| : (res_index += 1) {
+        res[res_index] = try std.fmt.parseInt(u32, coord, 10);
+    }
+    return res;
+}
+
+test "day6" {
+    const res = try day6();
+    try expect(res[0] == 400410);
+    try expect(res[1] == 15343601);
+}
+
+fn day7() ![2]u64 {
+    const data: u32 = 123;
+    const f: u32 = data << 2;
+    const d: u32 = 123 & 456;
+    const e: u32 = 123 | 456;
+    std.debug.print("res {d}, {d}, {d}\n", .{ f, d, e });
+    return [2]u64{ 0, 0 };
+}
+
+test "day7" {
+    _ = try day7();
 }
