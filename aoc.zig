@@ -435,6 +435,19 @@ fn day7() ![2]u64 {
     const d: u32 = 123 & 456;
     const e: u32 = 123 | 456;
     std.debug.print("res {d}, {d}, {d}\n", .{ f, d, e });
+    const allocator = std.heap.page_allocator;
+
+    const contents = try std.fs.cwd()
+        .readFileAlloc(allocator, "day7.txt", std.math.maxInt(usize));
+    defer allocator.free(contents);
+    var tokenizer = std.mem.tokenizeAny(u8, contents, "\n");
+    while (tokenizer.next()) |line| {
+        std.debug.print("line: {s}\n", .{line});
+        var instructions_tzr = std.mem.tokenizeAny(u8, line, "-> ");
+        while (instructions_tzr.next()) |part| {
+            std.debug.print("part: {s}\n", .{part});
+        }
+    }
     return [2]u64{ 0, 0 };
 }
 
